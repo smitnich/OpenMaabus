@@ -11,6 +11,10 @@ input_t getInput()
 			if (event.key.keysym.sym == SDLK_ESCAPE)
 				return INPUT_QUIT;
 		}
+		else if (event.type == SDL_QUIT)
+		{
+			return INPUT_QUIT;
+		}
 	}
 	return INPUT_NONE;
 }
