@@ -3,10 +3,14 @@
 #include <string>
 
 #include "input.h"
+#include "openAudio.h"
 
-int initVideo(const char *name, SDL_Surface *outputTo);
+extern bool isVideoOpen;
+void initVideo();
+int openVideo(const char *name, SDL_Surface *outputTo);
 bool renderFrame(SDL_Surface *screen);
 void closeVideo();
+void closeAudio();
 using namespace std;
 void drawScreen(SDL_Surface *screen);
 void loadImages(SDL_Surface *screen);
@@ -22,14 +26,20 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "SDL: could not set video mode - exiting\n");
 		exit(1);
 	}
-	initVideo((rootPath + "CD1/Intro.mav").data(), screen);
+	initVideo();
+	openVideo((rootPath + "CD1/J1-/J1-BEACH.mav").data(), screen);
 	//initVideo("../Maabus/CD1/CL1/CL1-R3A.mav", screen);
 	loadImages(screen);
 	drawScreen(screen);
 	SDL_Flip(screen);
 	while (true)
 	{
-		renderFrame(screen);
+		if (isVideoOpen && !renderFrame(screen))
+		{
+			closeVideo();
+			closeAudio();
+			//openAmbience((rootPath + "CD1/J1-/AMB.wav").data());
+		}
 		if (getInput() == INPUT_QUIT)
 		{
 			break;

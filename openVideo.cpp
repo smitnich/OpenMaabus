@@ -17,12 +17,20 @@ int             frameFinished;
 struct SwsContext *sws_ctx = NULL;
 SDL_Event       event;
 SDL_mutex *screenMutex;
+bool isVideoOpen = false;
 
 AVRational frameRate;
 #include "openAudio.h"
 unsigned int startTicks = 0;
+void resetTicks();
 
-int initVideo(const char *name, SDL_Surface *outputTo)
+void initVideo()
+{
+	// Register all formats and codecs
+	av_register_all();
+}
+
+int openVideo(const char *name, SDL_Surface *outputTo)
 {
 	int             i;
 	AVCodec         *pCodec = NULL;
@@ -30,8 +38,7 @@ int initVideo(const char *name, SDL_Surface *outputTo)
 
 	SDL_Surface     *screen = outputTo;
 
-	// Register all formats and codecs
-	av_register_all();
+
 
 	// Open video file
 	if (avformat_open_input(&pFormatCtx, name, NULL, NULL) != 0)
@@ -61,7 +68,6 @@ int initVideo(const char *name, SDL_Surface *outputTo)
 		return -1; // Didn't find a video stream
 
 	initAudio(audioStream, pFormatCtx);
-
 
 	// Get a pointer to the codec context for the video stream
 	pCodecCtxOrig = pFormatCtx->streams[videoStream]->codec;
@@ -110,7 +116,9 @@ int initVideo(const char *name, SDL_Surface *outputTo)
 		NULL
 		);
 
+	resetTicks();
 	frameRate = av_guess_frame_rate(pFormatCtx, pFormatCtx->streams[videoStream], NULL);
+	isVideoOpen = true;
 	return 0;
 }
 
@@ -131,6 +139,10 @@ void setTicks()
 {
 	startTicks = SDL_GetTicks();
 }
+void resetTicks()
+{
+	startTicks = 0;
+}
 
 double timestampToMilliseconds(int64_t ts)
 {
@@ -145,6 +157,8 @@ bool pastTimestamp(int64_t ts)
 
 bool renderFrame(SDL_Surface *screen)
 {
+	if (isVideoOpen == false)
+		return false;
 	SDL_Rect posRect = { 165, 61, 315, 194 };
 	static bool frameReady = false;
 	SDL_Rect        rect;
@@ -208,6 +222,8 @@ bool renderFrame(SDL_Surface *screen)
 }
 void closeVideo()
 {
+	if (!isVideoOpen)
+		return;
 	// Close the codec
 	avcodec_close(pCodecCtx);
 	avcodec_close(pCodecCtxOrig);
@@ -216,4 +232,5 @@ void closeVideo()
 	avformat_close_input(&pFormatCtx);
 	// Free the YUV frame
 	av_frame_free(&pFrame);
+	isVideoOpen = false;
 }

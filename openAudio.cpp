@@ -1,5 +1,6 @@
 #include "videoState.h"
 #include "openAudio.h"
+#include <string>
 
 int quit = 0;
 PacketQueue audioq;
@@ -10,7 +11,22 @@ AVCodecContext  *aCodecCtxOrig = NULL;
 SDL_AudioSpec   wanted_spec, spec;
 SDL_Thread *audioThread;
 
+static Uint8 audio_buf[(MAX_AUDIO_FRAME_SIZE * 3) / 2];
+static Uint32 audio_buf_size = 0;
+static unsigned int audio_buf_index = 0;
+
 bool pastTimestamp(int64_t ts);
+
+volatile bool stopRequested = false;
+bool ambiencePlaying = false;
+bool audioOpen = false;
+
+void free_packet_queue(PacketQueue *q);
+
+void closeAudio()
+{
+	stopRequested = true;
+}
 
 double get_audio_clock(VideoState *is) {
 	double pts;
@@ -60,12 +76,15 @@ int initAudio(int audioStream, AVFormatContext *pFormatCtx)
 	wanted_spec.callback = audio_callback;
 	wanted_spec.userdata = aCodecCtx;
 
-	if (SDL_OpenAudio(&wanted_spec, &spec) < 0) {
+	if (!audioOpen && SDL_OpenAudio(&wanted_spec, &spec) < 0) {
 		fprintf(stderr, "SDL_OpenAudio: %s\n", SDL_GetError());
 		return -1;
 	}
-
-	avcodec_open2(aCodecCtx, aCodec, NULL);
+	audioOpen = true;
+	if (avcodec_open2(aCodecCtx, aCodec, NULL))
+	{
+		fprintf(stderr, "Unable to open codec");
+	}
 
 	// audio_st = pFormatCtx->streams[index]
 	packet_queue_init(&audioq);
@@ -73,6 +92,7 @@ int initAudio(int audioStream, AVFormatContext *pFormatCtx)
 }
 
 void packet_queue_init(PacketQueue *q) {
+	free_packet_queue(q);
 	memset(q, 0, sizeof(PacketQueue));
 	q->mutex = SDL_CreateMutex();
 	q->cond = SDL_CreateCond();
@@ -104,6 +124,20 @@ int packet_queue_put(PacketQueue *q, AVPacket *pkt) {
 	SDL_UnlockMutex(q->mutex);
 	return 0;
 }
+void free_packet_queue(PacketQueue *q)
+{
+	AVPacketList *pkt1;
+	if (q == NULL)
+		return;
+	pkt1 = q->first_pkt;
+	while (pkt1 != NULL)
+	{
+		q->first_pkt = pkt1->next;
+		av_free(pkt1);
+		pkt1 = q->first_pkt;
+	}
+}
+
 static int packet_queue_get(PacketQueue *q, AVPacket *pkt, int block)
 {
 	AVPacketList *pkt1;
@@ -146,12 +180,15 @@ void audio_callback(void *userdata, Uint8 *stream, int len) {
 	AVCodecContext *aCodecCtx = (AVCodecContext *)userdata;
 	int len1, audio_size;
 
-	static uint8_t audio_buf[(MAX_AUDIO_FRAME_SIZE * 3) / 2];
-	static unsigned int audio_buf_size = 0;
-	static unsigned int audio_buf_index = 0;
+	if (stopRequested)
+	{
+		stopRequested = false;
+		memset(audio_buf, 0, audio_buf_size);
+		return;
+	}
 
 	while (len > 0) {
-		if (audio_buf_index >= audio_buf_size) {
+		if (!ambiencePlaying && audio_buf_index >= audio_buf_size) {
 			/* We have already sent all our data; get more */
 			audio_size = audio_decode_frame(aCodecCtx, audio_buf, sizeof(audio_buf));
 			if (audio_size < 0) {
