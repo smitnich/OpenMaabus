@@ -1,6 +1,9 @@
 #include <iostream>
 #include <SDL/SDL.h>
 #include <list>
+#include <SDL/SDL_ttf.h>
+
+#include "gameplay.h"
 
 SDL_Surface *backdrop = NULL;
 SDL_Rect fullScreen = { 0, 0, 640, 480 };
@@ -25,9 +28,6 @@ int missileState = WEAPON_ACTIVE;
 int laserState = WEAPON_AVAILABLE;
 int toxinState = WEAPON_AVAILABLE;
 
-int missilesLeft = 4;
-int lasersLeft   = 0;
-int toxinLeft    = 3;
 // The weapon LED displays have 19 portions despite only 3 being used;
 // this sets the length using the actual amount of available ammo
 int laserDisplayPortion = lasersLeft * 6;
@@ -60,18 +60,6 @@ int selfDestruct = 0;
 // Only active when self destruct is counting down
 int selfDestructCountdown = 0;
 
-// The amount of kilometers traveled
-int kmTraveled;
-
-enum AnalysisSpeed
-{
-	AS_SPEED_SLOW,
-	AS_SPEED_MED,
-	AS_SPEED_FAST
-};
-
-int analysisSpeed = AS_SPEED_SLOW;
-
 // The three possible speeds of analysis text scrolling
 int slowAnalysisSpeed = 0;
 int mediumAnalysisSpeed = 0;
@@ -79,9 +67,64 @@ int fastAnalysisSpeed = 1;
 
 int uplinkActive = 0;
 
+int kmDigits[3] = { 0, 0, 0 };
+
 // Color used for transparency in source images
 SDL_Color transparent = { 0, 0xFF, 0xFF };
 
+void updateKM()
+{
+	kmDigits[0] = kmTraveled / 100;
+	kmDigits[1] = (kmTraveled / 10) % 10;
+	kmDigits[2] = kmTraveled % 10;
+}
+
+
+#define COLON 10
+int timeDigits[] = { 0, COLON, 0, 0, COLON, 0, 0 };
+
+void updateTime()
+{
+	int tmp = secondsLeft;
+	timeDigits[0] = tmp / (60 * 60);
+	timeDigits[1] = COLON;
+	tmp %= (60 * 60);
+	timeDigits[2] = (tmp / 60) / 10;
+	timeDigits[3] = (tmp / 60) % 10;
+	tmp %= 60;
+	timeDigits[4] = COLON;
+	timeDigits[5] = tmp / 10;
+	timeDigits[6] = tmp % 10;
+
+}
+
+static SDL_Surface *analysisSurface = NULL;
+static int scrollProgress = 0;
+static TTF_Font *analysisFont = NULL;
+static SDL_Color textColor = { 0, 255, 0 };
+static SDL_Color black = { 0, 0, 0 };
+
+void initAnalysis()
+{
+	TTF_Init();
+	analysisFont = TTF_OpenFont((rootPath + "INSTALL/SCROLL.FON").data(),8);
+	if (!analysisFont)
+	{
+		char *problem = SDL_GetError();
+		exit(0);
+	}
+	analysisSurface = TTF_RenderText(analysisFont,"",textColor,black);
+}
+
+
+void updateAnalysis(std::string text)
+{
+	scrollProgress = 0;
+	if (analysisSurface)
+		SDL_FreeSurface(analysisSurface);
+	analysisSurface = TTF_RenderText(analysisFont, text.data(),
+		textColor, black);
+}
 
 class ImageHandler
 {
@@ -91,7 +134,10 @@ public:
 	ImageHandler(SDL_Surface *surface, int x, int y)
 	{
 		image = surface;
-		pos = { x, y, surface->w, surface->h };
+		if (image)
+			pos = { x, y, surface->w, surface->h };
+		else
+			pos = { x, y, 0, 0 };
 	}
 	~ImageHandler()
 	{
@@ -151,6 +197,22 @@ public:
 	}
 };
 
+class AnalysisDisplay : public ImageHandler
+{
+public:
+	int scrollPosition;
+	bool active;
+	SDL_Surface **toDraw;
+	AnalysisDisplay(SDL_Surface **surface, int x, int y) : ImageHandler(NULL, x, y)
+	{
+		toDraw = surface;
+	}
+	void draw() override
+	{
+		SDL_BlitSurface(*toDraw, NULL, screen, &pos);
+	}
+};
+
 void addImageHandler(const std::string path, int x, int y)
 {
 	std::string fullPath = rootPath + path;
@@ -179,6 +241,7 @@ SDL_Surface *loadImage(std::string path)
 
 void loadImages(SDL_Surface *screen)
 {
+	initAnalysis();
 	// This must be drawn first, goes behind everything else
 	addImageHandler("Install/Screen/Final2.dib", 0, 0);
 	// The satellite map of the island
@@ -189,9 +252,12 @@ void loadImages(SDL_Surface *screen)
 	allImages.push_back(new WeaponDisplay(loadImage("Install/Screen/LASER.dib"), 31, 122, &laserState));
 	allImages.push_back(new WeaponDisplay(loadImage("Install/Screen/TOXIN.dib"), 31, 191, &toxinState));
 	
+	SDL_Surface *textSheet = loadImage("Install/Screen/SMALLCD.dib");
+	SDL_SetColorKey(textSheet, SDL_SRCCOLORKEY, SDL_MapRGB(screen->format, 0, 0, 0));
+
 	// Weapon shots left
 	// Missiles use a numerical display instead of a bar
-	allImages.push_back(new BasicDisplay(loadImage("Install/Screen/SMALLCD.dib"), 98, 86, &missilesLeft, 11));
+	allImages.push_back(new BasicDisplay(textSheet, 98, 86, &missilesLeft, 11));
 	allImages.push_back(new BasicDisplay(loadImage("Install/Screen/LED.dib"), 35, 165, &laserDisplayPortion, 19));
 	allImages.push_back(new BasicDisplay(loadImage("Install/Screen/LED.dib"), 35, 234, &toxinDisplayPortion, 19));
 
@@ -214,12 +280,36 @@ void loadImages(SDL_Surface *screen)
 	allImages.push_back(new BasicDisplay(speedButton, 248, 394, &slowAnalysisSpeed, 2));
 	allImages.push_back(new BasicDisplay(speedButton, 248 + (speedButton->w+3), 394, &mediumAnalysisSpeed, 2));
 	allImages.push_back(new BasicDisplay(speedButton, 248 + (speedButton->w+3) * 2, 394, &fastAnalysisSpeed, 2));
+	// Scrolling analysis display
+	allImages.push_back(new AnalysisDisplay(&analysisSurface, 219, 415));
+
+	// Kilometers traveled display
+	for (int i = 0; i < 3; i++)
+	{
+		allImages.push_back(new BasicDisplay(textSheet, 238+10*i, 270, &kmDigits[i], 11));
+	}
+
+	int xPos = 346;
+	for (int i = 0; i < 7; i++)
+	{
+		allImages.push_back(new BasicDisplay(textSheet, xPos, 270, &timeDigits[i], 11));
+		if (timeDigits[i+1] == COLON)
+			xPos += 8;
+		else 
+			xPos += 10;
+	}
 
 	// Misc parts of the display
 	allImages.push_back(new BasicDisplay(loadImage("Install/Screen/SATT.dib"), 441, 443, &positionPressed, 2));
 	allImages.push_back(new BasicDisplay(loadImage("Install/Screen/ANALYS.dib"), 19, 444, &analysPressed, 2));
 	allImages.push_back(new BasicDisplay(loadImage("Install/Screen/TARGET.dib"), 408, 19, &targetLocked, 6));
 	allImages.push_back(new BasicDisplay(loadImage("Install/Screen/UPLINK.dib"), 280, 266, &uplinkActive, 2));
+
+	// Temp test
+	kmTraveled = 5;
+	updateKM();
+	updateTime();
+	updateAnalysis("Testing");
 }
 
 void drawScreen(SDL_Surface *screen)
