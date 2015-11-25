@@ -2,6 +2,8 @@
 #include <SDL/SDL.h>
 #include <string>
 
+#include "input.h"
+
 int initVideo(const char *name, SDL_Surface *outputTo);
 bool renderFrame(SDL_Surface *screen);
 void closeVideo();
@@ -25,7 +27,14 @@ int main(int argc, char *argv[])
 	loadImages(screen);
 	drawScreen(screen);
 	SDL_Flip(screen);
-	while (renderFrame(screen));
+	while (true)
+	{
+		renderFrame(screen);
+		if (getInput() == INPUT_QUIT)
+		{
+			break;
+		}
+	}
 	closeVideo();
 	return 0;
 }
