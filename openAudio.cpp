@@ -25,7 +25,10 @@ void free_packet_queue(PacketQueue *q);
 
 void closeAudio()
 {
-	stopRequested = true;
+	//stopRequested = true;
+	audio_buf_index = 0;
+	memset(audio_buf, 0, (MAX_AUDIO_FRAME_SIZE * 3) / 2);
+	SDL_CloseAudio();
 }
 
 double get_audio_clock(VideoState *is) {
@@ -76,7 +79,7 @@ int initAudio(int audioStream, AVFormatContext *pFormatCtx)
 	wanted_spec.callback = audio_callback;
 	wanted_spec.userdata = aCodecCtx;
 
-	if (!audioOpen && SDL_OpenAudio(&wanted_spec, &spec) < 0) {
+	if (SDL_OpenAudio(&wanted_spec, &spec) < 0) {
 		fprintf(stderr, "SDL_OpenAudio: %s\n", SDL_GetError());
 		return -1;
 	}
@@ -89,6 +92,7 @@ int initAudio(int audioStream, AVFormatContext *pFormatCtx)
 	// audio_st = pFormatCtx->streams[index]
 	packet_queue_init(&audioq);
 	SDL_PauseAudio(0);
+	return 0;
 }
 
 void packet_queue_init(PacketQueue *q) {
@@ -175,20 +179,13 @@ static int packet_queue_get(PacketQueue *q, AVPacket *pkt, int block)
 	SDL_UnlockMutex(q->mutex);
 	return ret;
 }
+extern AVFormatContext *pFormatCtx;
 void audio_callback(void *userdata, Uint8 *stream, int len) {
 
 	AVCodecContext *aCodecCtx = (AVCodecContext *)userdata;
 	int len1, audio_size;
-
-	if (stopRequested)
-	{
-		stopRequested = false;
-		memset(audio_buf, 0, audio_buf_size);
-		return;
-	}
-
 	while (len > 0) {
-		if (!ambiencePlaying && audio_buf_index >= audio_buf_size) {
+		if (audio_buf_index >= audio_buf_size) {
 			/* We have already sent all our data; get more */
 			audio_size = audio_decode_frame(aCodecCtx, audio_buf, sizeof(audio_buf));
 			if (audio_size < 0) {
@@ -209,6 +206,21 @@ void audio_callback(void *userdata, Uint8 *stream, int len) {
 		stream += len1;
 		audio_buf_index += len1;
 	}
+}
+extern AVFormatContext *pFormatCtx;
+extern AVPacket        packet;
+extern int audioStream;
+
+bool renderSample()
+{
+	if (av_read_frame(pFormatCtx, &packet) < 0)
+		return false;
+	// Is this a packet from the video stream?
+	if (packet.stream_index == audioStream) {
+		packet_queue_put(&audioq, &packet);
+		return true;
+	}
+	return false;
 }
 
 int audio_decode_frame(AVCodecContext *aCodecCtx, uint8_t *audio_buf, int buf_size) {

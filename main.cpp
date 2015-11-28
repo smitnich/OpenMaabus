@@ -15,6 +15,8 @@ using namespace std;
 void drawScreen(SDL_Surface *screen);
 void loadImages(SDL_Surface *screen);
 SDL_Surface *screen = NULL;
+int openAmbience(const char *name);
+bool renderSample();
 
 std::string rootPath = "D:/source/openmaabus/OpenMaabus/Maabus/";
 
@@ -28,7 +30,6 @@ int main(int argc, char *argv[])
 	}
 	initVideo();
 	openVideo((rootPath + "CD1/J1-/J1-BEACH.mav").data(), screen);
-	//initVideo("../Maabus/CD1/CL1/CL1-R3A.mav", screen);
 	loadImages(screen);
 	drawScreen(screen);
 	SDL_Flip(screen);
@@ -38,7 +39,7 @@ int main(int argc, char *argv[])
 		{
 			closeVideo();
 			closeAudio();
-			//openAmbience((rootPath + "CD1/J1-/AMB.wav").data());
+			openAmbience((rootPath + "CD1/J2-/AMB.wav").data());
 		}
 		if (getInput() == INPUT_QUIT)
 		{
