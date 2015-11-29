@@ -20,11 +20,14 @@ bool pastTimestamp(int64_t ts);
 volatile bool stopRequested = false;
 bool ambiencePlaying = false;
 bool audioOpen = false;
+void closeAmbience();
 
 void free_packet_queue(PacketQueue *q);
 
 void closeAudio()
 {
+	if (ambiencePlaying)
+		closeAmbience();
 	//stopRequested = true;
 	audio_buf_index = 0;
 	memset(audio_buf, 0, (MAX_AUDIO_FRAME_SIZE * 3) / 2);

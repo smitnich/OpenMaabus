@@ -25,6 +25,13 @@ int openAmbience(const char *name)
 	if (!currentAmbience)
 		return false;
 	Mix_PlayChannel(-1, currentAmbience, -1);
+	ambiencePlaying = true;
 	return true;
 }
-
+void closeAmbience()
+{
+	Mix_CloseAudio();
+	currentAmbience = NULL;
+	ambiencePlaying = false;
+	Mix_FreeChunk(currentAmbience);
+}
