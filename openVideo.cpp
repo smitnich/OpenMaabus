@@ -24,6 +24,8 @@ AVRational frameRate;
 unsigned int startTicks = 0;
 void resetTicks();
 
+SDL_Surface *getScreen();
+
 void initVideo()
 {
 	// Register all formats and codecs
@@ -120,6 +122,11 @@ int openVideo(const char *name, SDL_Surface *outputTo)
 	frameRate = av_guess_frame_rate(pFormatCtx, pFormatCtx->streams[videoStream], NULL);
 	isVideoOpen = true;
 	return 0;
+}
+
+void playVideo(const char *fileName)
+{
+	openVideo(fileName, getScreen());
 }
 
 int getDelay(AVPacket *packet)

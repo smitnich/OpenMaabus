@@ -8,8 +8,19 @@ input_t getInput()
 	{
 		if (event.type == SDL_KEYDOWN)
 		{
-			if (event.key.keysym.sym == SDLK_ESCAPE)
+			switch (event.key.keysym.sym)
+			{
+			case SDLK_ESCAPE:
 				return INPUT_QUIT;
+			case SDLK_UP:
+				return INPUT_FORWARD;
+			case SDLK_DOWN:
+				return INPUT_REVERSE;
+			case SDLK_RIGHT:
+				return INPUT_RIGHT;
+			case SDLK_LEFT:
+				return INPUT_LEFT;
+			}
 		}
 		else if (event.type == SDL_QUIT)
 		{
