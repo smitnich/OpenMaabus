@@ -16,7 +16,7 @@
 #define AVCODEC_MAX_AUDIO_FRAME_SIZE 192000
 #define VIDEO_PICTURE_QUEUE_SIZE 1
 
-#include <SDL/SDL.h>
+#include <SDL.h>
 extern "C" {
 #include "libavcodec/avcodec.h"
 #include "libavformat/avformat.h"

@@ -1,7 +1,7 @@
 #include <iostream>
-#include <SDL/SDL.h>
+#include <SDL.h>
 #include <list>
-#include <SDL/SDL_ttf.h>
+#include <SDL_ttf.h>
 
 #include "gameplay.h"
 
@@ -72,6 +72,8 @@ int kmDigits[3] = { 0, 0, 0 };
 // Color used for transparency in source images
 SDL_Color transparent = { 0, 0xFF, 0xFF };
 
+#define TRANSPARENT 0x00FFFF
+
 void updateKM()
 {
 	kmDigits[0] = kmTraveled / 100;
@@ -110,7 +112,7 @@ void initAnalysis()
 	analysisFont = TTF_OpenFont((rootPath + "INSTALL/SCROLL.FON").data(),8);
 	if (!analysisFont)
 	{
-		char *problem = SDL_GetError();
+		fprintf(stderr, "Unable to load font: %s", SDL_GetError());
 		exit(0);
 	}
 	analysisSurface = TTF_RenderText(analysisFont,"",textColor,black);
@@ -221,17 +223,20 @@ void addImageHandler(const std::string path, int x, int y)
 		new ImageHandler(tmp, x, y));
 
 }
+extern SDL_Renderer *renderer;
+extern SDL_Window *window; 
 
 SDL_Surface *loadImage(std::string path)
 {
+	SDL_RendererInfo info;
 	SDL_Surface *firstSurf = SDL_LoadBMP((rootPath + path).data());
 	// Optimize the image
-	SDL_Surface *newSurf = SDL_DisplayFormat(firstSurf);
+	SDL_Surface *newSurf = SDL_ConvertSurfaceFormat(firstSurf, SDL_GetWindowPixelFormat(window), 0);
 	// And free the old image
 	SDL_FreeSurface(firstSurf);
 	// Set the transparency color
-	if (SDL_SetColorKey(newSurf, SDL_SRCCOLORKEY,
-		SDL_MapRGB(screen->format, transparent.r, transparent.g, transparent.b)))
+	if (SDL_SetColorKey(newSurf, SDL_TRUE,
+		TRANSPARENT))
 	{
 		fprintf(stderr, "Warning: colorkey will not be used, reason: %s\n", SDL_GetError());
 	}
@@ -253,7 +258,7 @@ void loadImages(SDL_Surface *screen)
 	allImages.push_back(new WeaponDisplay(loadImage("Install/Screen/TOXIN.dib"), 31, 191, &toxinState));
 	
 	SDL_Surface *textSheet = loadImage("Install/Screen/SMALLCD.dib");
-	SDL_SetColorKey(textSheet, SDL_SRCCOLORKEY, SDL_MapRGB(screen->format, 0, 0, 0));
+	SDL_SetColorKey(textSheet, SDL_TRUE, TRANSPARENT);
 
 	// Weapon shots left
 	// Missiles use a numerical display instead of a bar
@@ -314,9 +319,13 @@ void loadImages(SDL_Surface *screen)
 
 void drawScreen(SDL_Surface *screen)
 {
-	SDL_FillRect(screen, &fullScreen, SDL_MapRGB(screen->format, 0, 0, 0));
+	SDL_RenderClear(renderer);
+	SDL_RenderDrawRect(renderer, NULL);
 	for (ImageHandler *ih : allImages)
 	{
 		ih->draw();
 	}
+	SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, screen);
+	SDL_RenderCopy(renderer, texture, NULL, NULL);
+	SDL_DestroyTexture(texture);
 }

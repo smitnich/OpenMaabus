@@ -1,4 +1,4 @@
-#include <SDL/SDL.h>
+#include <SDL.h>
 extern "C" {
 #include "libavcodec/avcodec.h"
 #include "libavformat/avformat.h"
@@ -8,7 +8,7 @@ extern "C" {
 AVFormatContext *pFormatCtx = NULL;
 AVCodecContext  *pCodecCtxOrig = NULL;
 
-SDL_Overlay     *bmp;
+SDL_Texture     *bmp;
 AVPacket        packet;
 int videoStream, audioStream;
 AVCodecContext  *pCodecCtx = NULL;
@@ -25,12 +25,14 @@ unsigned int startTicks = 0;
 void resetTicks();
 
 SDL_Surface *getScreen();
+extern 	SDL_Renderer *renderer;
 
 void initVideo()
 {
 	// Register all formats and codecs
 	av_register_all();
 }
+
 
 int openVideo(const char *name, SDL_Surface *outputTo)
 {
@@ -94,16 +96,19 @@ int openVideo(const char *name, SDL_Surface *outputTo)
 	// Allocate video frame
 	pFrame = av_frame_alloc();
 
-	if (!screen) {
+	if (!renderer) {
 		fprintf(stderr, "SDL: could not set video mode - exiting\n");
 		exit(1);
 	}
 
 	// Allocate a place to put our YUV image on that screen
-	bmp = SDL_CreateYUVOverlay(pCodecCtx->width,
-		pCodecCtx->height,
-		SDL_YV12_OVERLAY,
-		screen);
+	bmp = SDL_CreateTexture(
+		renderer,
+		SDL_PIXELFORMAT_YV12,
+		SDL_TEXTUREACCESS_STREAMING,
+		pCodecCtx->width,
+		pCodecCtx->height
+		);
 
 	// initialize SWS context for software scaling
 	sws_ctx = sws_getContext(pCodecCtx->width,
@@ -162,6 +167,8 @@ bool pastTimestamp(int64_t ts)
 	return (SDL_GetTicks()-startTicks > timestampToMilliseconds(ts));
 }
 
+static SDL_Texture *texture = NULL;
+
 bool renderFrame(SDL_Surface *screen)
 {
 	if (isVideoOpen == false)
@@ -194,37 +201,74 @@ bool renderFrame(SDL_Surface *screen)
 			return true;
 		}
 	}
+	Uint8 *yPlane, *uPlane, *vPlane;
+	size_t yPlaneSz, uvPlaneSz;
+	int uvPitch = pCodecCtx->width / 2;
+
+	// Allocate a place to put our YUV image on that screen
+	if (texture == NULL)
+	{
+		texture = SDL_CreateTexture(
+			renderer,
+			SDL_PIXELFORMAT_YV12,
+			SDL_TEXTUREACCESS_STREAMING,
+			pCodecCtx->width,
+			pCodecCtx->height
+			);
+	}
+	// set up YV12 pixel array (12 bits per pixel)
+	yPlaneSz = pCodecCtx->width * pCodecCtx->height;
+	uvPlaneSz = pCodecCtx->width * pCodecCtx->height / 4;
+	yPlane = (Uint8*)malloc(yPlaneSz);
+	uPlane = (Uint8*)malloc(uvPlaneSz);
+	vPlane = (Uint8*)malloc(uvPlaneSz);
+	if (!yPlane || !uPlane || !vPlane) {
+		fprintf(stderr, "Could not allocate pixel buffers - exiting\n");
+		exit(1);
+	}
 
 	int64_t ts = av_frame_get_best_effort_timestamp(pFrame);
 	if (pastTimestamp(ts))
 	{
 		// Did we get a video frame?
 		if (frameFinished) {
-			SDL_LockYUVOverlay(bmp);
 			AVFrame pict;
-			pict.data[0] = bmp->pixels[0];
-			pict.data[1] = bmp->pixels[2];
-			pict.data[2] = bmp->pixels[1];
+			pict.data[0] = yPlane;
+			pict.data[1] = uPlane;
+			pict.data[2] = vPlane;
+			pict.linesize[0] = pCodecCtx->width;
+			pict.linesize[1] = uvPitch;
+			pict.linesize[2] = uvPitch;
 
-			pict.linesize[0] = bmp->pitches[0];
-			pict.linesize[1] = bmp->pitches[2];
-			pict.linesize[2] = bmp->pitches[1];
 			// Convert the image into YUV format that SDL uses
 			sws_scale(sws_ctx, (uint8_t const * const *)pFrame->data,
-				pFrame->linesize, 0, pCodecCtx->height, pict.data, pict.linesize);
+				pFrame->linesize, 0, pCodecCtx->height, pict.data,
+				pict.linesize);
 
-			SDL_UnlockYUVOverlay(bmp);
-
-			rect.x = 0;
-			rect.y = 0;
-			rect.w = pCodecCtx->width;
-			rect.h = pCodecCtx->height;
-			SDL_DisplayYUVOverlay(bmp, &posRect);
+			SDL_UpdateYUVTexture(
+				texture,
+				NULL,
+				yPlane,
+				pCodecCtx->width,
+				uPlane,
+				uvPitch,
+				vPlane,
+				uvPitch
+				);
 		}
 		// Free the packet that was allocated by av_read_frame
 		av_packet_unref(&packet);
 		frameReady = false;
 	}
+	if (SDL_RenderCopy(renderer, texture, NULL, &posRect) == -1)
+	{
+		fprintf(stderr, "Failed to render from texture: %s", SDL_GetError());
+	}
+	SDL_RenderPresent(renderer);
+	free(yPlane);
+	free(uPlane);
+	free(vPlane);
+	//SDL_DestroyTexture(texture);
 	return true;
 }
 void closeVideo()

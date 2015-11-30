@@ -1,5 +1,5 @@
 #include <iostream>
-#include <SDL/SDL.h>
+#include <SDL.h>
 #include <string>
 
 #include "input.h"
@@ -35,24 +35,33 @@ void playQueuedVideo()
 	queuedVideo.erase();
 }
 
+SDL_Renderer *renderer;
+SDL_Window *window;
+
 int main(int argc, char *argv[])
 {
 	bool doExit = false;
 	SDL_Init(SDL_INIT_EVERYTHING);
-	screen = SDL_SetVideoMode(640, 480, 24, 0);
-	if (!screen) {
+	window = SDL_CreateWindow("Maabus",
+		SDL_WINDOWPOS_UNDEFINED,
+		SDL_WINDOWPOS_UNDEFINED,
+		640, 480,
+		0);
+	screen = SDL_CreateRGBSurface(0, 640, 480, 24, 0xFF, 0xFF, 0xFF, 0xFF );
+	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
+
+	if (!renderer) {
 		fprintf(stderr, "SDL: could not set video mode - exiting\n");
 		exit(1);
 	}
 	initVideo();
 	openVideo((rootPath + "CD1/J1-/J1-J2.mav").data(), screen);
 	loadImages(screen);
-	drawScreen(screen);
-	SDL_Flip(screen);
 	Location location("J2-");
 	location.currentPos = DIR_EAST;
 	while (!doExit)
 	{
+		drawScreen(screen);
 		playQueuedVideo();
 		if (isVideoOpen && !renderFrame(screen))
 		{

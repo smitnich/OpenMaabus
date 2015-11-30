@@ -1,3 +1,4 @@
+
 //1 North to East
 //4 North to West
 //5 West to East
@@ -120,7 +121,7 @@ void Location::move(int start, int end)
 {
 	char buffer[1024] = { 0 };
 	int val = lookupTable[start - 1][end - 1];
-	sprintf_s(buffer, "%sCD1/%s/%s%d.mav", rootPath.data(), nodeName.data(), nodeName.data(), lookupTable[start-1][end-1]);
+	sprintf_s(buffer, "%sCD1/%s/%s%d.mav", rootPath.data(), nodeName.data(), nodeName.data(), lookupTable[start - 1][end - 1]);
 	queuedVideo = std::string(buffer);
 	currentPos = end;
 	reversed = true;

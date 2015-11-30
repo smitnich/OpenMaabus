@@ -30,8 +30,10 @@ void closeAudio()
 		closeAmbience();
 	//stopRequested = true;
 	audio_buf_index = 0;
-	memset(audio_buf, 0, (MAX_AUDIO_FRAME_SIZE * 3) / 2);
+	SDL_LockAudio();
+	//memset(audio_buf, 0, (MAX_AUDIO_FRAME_SIZE * 3) / 2);
 	SDL_CloseAudio();
+	SDL_UnlockAudio();
 }
 
 double get_audio_clock(VideoState *is) {

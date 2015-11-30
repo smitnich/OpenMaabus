@@ -2,7 +2,7 @@
 #define STRUCTS
 
 typedef struct VideoPicture {
-	SDL_Overlay *bmp;
+	SDL_Texture *bmp;
 	int width, height; /* source height & width */
 	int allocated;
 	double pts;
