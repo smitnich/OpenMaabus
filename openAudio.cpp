@@ -24,16 +24,13 @@ void closeAmbience();
 
 void free_packet_queue(PacketQueue *q);
 
+SDL_AudioDeviceID dev = -1;
+
 void closeAudio()
 {
 	if (ambiencePlaying)
 		closeAmbience();
-	//stopRequested = true;
-	audio_buf_index = 0;
-	SDL_LockAudio();
-	//memset(audio_buf, 0, (MAX_AUDIO_FRAME_SIZE * 3) / 2);
-	SDL_CloseAudio();
-	SDL_UnlockAudio();
+	memset(audio_buf, 0, (MAX_AUDIO_FRAME_SIZE * 3) / 2);
 }
 
 double get_audio_clock(VideoState *is) {
@@ -83,8 +80,8 @@ int initAudio(int audioStream, AVFormatContext *pFormatCtx)
 	wanted_spec.samples = SDL_AUDIO_BUFFER_SIZE;
 	wanted_spec.callback = audio_callback;
 	wanted_spec.userdata = aCodecCtx;
-
-	if (SDL_OpenAudio(&wanted_spec, &spec) < 0) {
+	dev = SDL_OpenAudioDevice(NULL, 0, &wanted_spec, &spec, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
+	if (dev < 0) {
 		fprintf(stderr, "SDL_OpenAudio: %s\n", SDL_GetError());
 		return -1;
 	}
@@ -96,7 +93,7 @@ int initAudio(int audioStream, AVFormatContext *pFormatCtx)
 
 	// audio_st = pFormatCtx->streams[index]
 	packet_queue_init(&audioq);
-	SDL_PauseAudio(0);
+	SDL_PauseAudioDevice(dev, 0);
 	return 0;
 }
 
