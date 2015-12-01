@@ -65,6 +65,9 @@ int slowAnalysisSpeed = 0;
 int mediumAnalysisSpeed = 0;
 int fastAnalysisSpeed = 1;
 
+// Whether or not the analysis light is currently lit up
+int lightOn = 0;
+
 int uplinkActive = 0;
 
 int kmDigits[3] = { 0, 0, 0 };
@@ -309,6 +312,7 @@ void loadImages(SDL_Surface *screen)
 	allImages.push_back(new BasicDisplay(loadImage("Install/Screen/ANALYS.dib"), 19, 444, &analysPressed, 2));
 	allImages.push_back(new BasicDisplay(loadImage("Install/Screen/TARGET.dib"), 408, 19, &targetLocked, 6));
 	allImages.push_back(new BasicDisplay(loadImage("Install/Screen/UPLINK.dib"), 280, 266, &uplinkActive, 2));
+	allImages.push_back(new BasicDisplay(loadImage("Install/Screen/LIGHT.dib"), 313, 367, &lightOn, 2));
 
 	// Temp test
 	kmTraveled = 5;
