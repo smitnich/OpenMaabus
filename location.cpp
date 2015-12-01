@@ -25,10 +25,10 @@ void playVideo(const char *fileName);
 
 int lookupTable[NUM_DIRS][NUM_DIRS] =
 {
-	{ -1, 0, 1, 4 }, // North to *
-	{ 0, -1, 0, 0 }, // South to *
-	{ 9, 0, -1, 7 }, // East to *
-	{ 12, 0, 5, -1 }, // West to *
+	{ -1, 8, 1, 4 }, // North to *
+	{ 6, -1, 10, 11 }, // South to *
+	{ 9, 2, -1, 7 }, // East to *
+	{ 12, 3, 5, -1 }, // West to *
 };
 
 extern std::string rootPath;
