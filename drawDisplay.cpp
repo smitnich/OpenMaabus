@@ -28,6 +28,15 @@ int missileState = WEAPON_ACTIVE;
 int laserState = WEAPON_AVAILABLE;
 int toxinState = WEAPON_AVAILABLE;
 
+// Green when weapons are availible during an encounter, red if we aren't in
+// an encounter, or that weapon is not availible
+int missileAvailible = true;
+int laserAvailible = false;
+int toxinAvailible = false;
+
+// Green when the target in an attack has been locked onto
+int targetLocked = true;
+
 // The weapon LED displays have 19 portions despite only 3 being used;
 // this sets the length using the actual amount of available ammo
 int laserDisplayPortion = lasersLeft * 6;
@@ -49,8 +58,8 @@ int positionPressed = 0;
 // Whether or not the Analysis button is pressed
 int analysPressed = 0;
 
-// Display of whether the target is locked during an attack
-int targetLocked = 5;
+// Used during an attack before the target is locked onto
+int targetProgress = 5;
 
 // Buttons in the center
 int manualButton = 0;
@@ -155,6 +164,25 @@ public:
 	}
 };
 
+class RectangleHandler : public ImageHandler
+{
+public:
+	Uint32 onColor, offColor;
+	SDL_Rect pos;
+	int *isOn;
+	RectangleHandler(Uint32 _onColor, Uint32 _offColor, SDL_Rect _pos, int *_isOn)
+		: ImageHandler(NULL, 0, 0), onColor(_onColor), offColor(_offColor), pos(_pos), isOn(_isOn)
+	{
+	}
+	void draw() override
+	{
+		SDL_FillRect(screen, &pos, *isOn ? onColor : offColor);
+	}
+	~RectangleHandler()
+	{
+	}
+};
+
 std::list<ImageHandler *> allImages;
 
 class WeaponDisplay : public ImageHandler
@@ -255,6 +283,19 @@ void loadImages(SDL_Surface *screen)
 	// The satellite map of the island
 	addImageHandler("Install/Screen/SatIslan.dib", 462, 314);
 
+	// Rectangles displaying red if a weapon is unavailible during an attack, or green otherwise
+	SDL_Rect wpnRect[] = { { 99, 56, 35, 4 }, {99, 128, 16, 4}, {99, 197, 35, 4} };
+	allImages.push_back(new RectangleHandler(0x00FF00, 0xFF0000, wpnRect[0], &missileAvailible));
+	allImages.push_back(new RectangleHandler(0x00FF00, 0xFF0000, wpnRect[1], &laserAvailible));
+	allImages.push_back(new RectangleHandler(0x00FF00, 0xFF0000, wpnRect[2], &toxinAvailible));
+
+	// Target lock display: first object is for the growing red rectangle prior to lock on,
+	// second is for green overlay once lock on is achieved
+	allImages.push_back(new BasicDisplay(loadImage("Install/Screen/TARGET.dib"), 408, 19, &targetProgress, 6));
+
+	SDL_Rect lockedOnRect = { 406, 15, 24, 27 };
+	allImages.push_back(new RectangleHandler(0x00FF00, 0xFF000000, lockedOnRect, &targetLocked));
+
 	// Weapon availibility
 	allImages.push_back(new WeaponDisplay(loadImage("Install/Screen/MIS.dib"),31,51,&missileState));
 	allImages.push_back(new WeaponDisplay(loadImage("Install/Screen/LASER.dib"), 31, 122, &laserState));
@@ -310,7 +351,6 @@ void loadImages(SDL_Surface *screen)
 	// Misc parts of the display
 	allImages.push_back(new BasicDisplay(loadImage("Install/Screen/SATT.dib"), 441, 443, &positionPressed, 2));
 	allImages.push_back(new BasicDisplay(loadImage("Install/Screen/ANALYS.dib"), 19, 444, &analysPressed, 2));
-	allImages.push_back(new BasicDisplay(loadImage("Install/Screen/TARGET.dib"), 408, 19, &targetLocked, 6));
 	allImages.push_back(new BasicDisplay(loadImage("Install/Screen/UPLINK.dib"), 280, 266, &uplinkActive, 2));
 	allImages.push_back(new BasicDisplay(loadImage("Install/Screen/LIGHT.dib"), 313, 367, &lightOn, 2));
 
