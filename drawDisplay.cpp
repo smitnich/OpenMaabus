@@ -35,7 +35,7 @@ int laserAvailible = false;
 int toxinAvailible = false;
 
 // Green when the target in an attack has been locked onto
-int targetLocked = true;
+int targetLocked = false;
 
 // The weapon LED displays have 19 portions despite only 3 being used;
 // this sets the length using the actual amount of available ammo
@@ -76,6 +76,11 @@ int fastAnalysisSpeed = 1;
 
 // Whether or not the analysis light is currently lit up
 int lightOn = 0;
+
+// Availibility of moves (reversal is always availible)
+int forwardMovePossible = true;
+int leftMovePossible = true;
+int rightMovePossible = true;
 
 int uplinkActive = 0;
 
@@ -176,6 +181,9 @@ public:
 	}
 	void draw() override
 	{
+		// Hack for FillRect not supporting transparency: make sure we don't draw pure black
+		if (!*isOn && offColor == 0)
+			return;
 		SDL_FillRect(screen, &pos, *isOn ? onColor : offColor);
 	}
 	~RectangleHandler()
@@ -184,6 +192,24 @@ public:
 };
 
 std::list<ImageHandler *> allImages;
+
+class ArrowDisplay : public ImageHandler
+{
+public:
+	int *isOn;
+	SDL_Rect srcRect, pos;
+	SDL_Surface *image;
+	ArrowDisplay(SDL_Surface *surface, SDL_Rect _srcRect, SDL_Rect _destRect, int *_isOn) : ImageHandler(NULL, 0, 0),
+		image(surface), srcRect(_srcRect), pos(_destRect), isOn(_isOn)
+	{
+
+	}
+	void draw() override
+	{
+		if (*isOn)
+			SDL_BlitSurface(image, &srcRect, screen, &pos);
+	}
+};
 
 class WeaponDisplay : public ImageHandler
 {
@@ -283,6 +309,12 @@ void loadImages(SDL_Surface *screen)
 	// The satellite map of the island
 	addImageHandler("Install/Screen/SatIslan.dib", 462, 314);
 
+	// Arrows display green if a direction can be moved in
+	SDL_Surface *arrows = loadImage("Install/Screen/DIRIND.dib");
+	allImages.push_back(new ArrowDisplay(arrows, { 0, 8, 8, 8  }, { 153, 141, 8, 8 }, &leftMovePossible));
+	allImages.push_back(new ArrowDisplay(arrows, { 0, 24, 8, 8 }, { 320, 48, 8, 8  }, &forwardMovePossible));
+	allImages.push_back(new ArrowDisplay(arrows, { 0, 40, 8, 8 }, { 483, 149, 8, 8 }, &rightMovePossible));
+
 	// Rectangles displaying red if a weapon is unavailible during an attack, or green otherwise
 	SDL_Rect wpnRect[] = { { 99, 56, 35, 4 }, {99, 128, 16, 4}, {99, 197, 35, 4} };
 	allImages.push_back(new RectangleHandler(0x00FF00, 0xFF0000, wpnRect[0], &missileAvailible));
@@ -293,8 +325,8 @@ void loadImages(SDL_Surface *screen)
 	// second is for green overlay once lock on is achieved
 	allImages.push_back(new BasicDisplay(loadImage("Install/Screen/TARGET.dib"), 408, 19, &targetProgress, 6));
 
-	SDL_Rect lockedOnRect = { 406, 15, 24, 27 };
-	allImages.push_back(new RectangleHandler(0x00FF00, 0xFF000000, lockedOnRect, &targetLocked));
+	SDL_Rect lockedOnRect = { 407, 16, 22, 25 };
+	allImages.push_back(new RectangleHandler(0x00FF00, 0x00, lockedOnRect, &targetLocked));
 
 	// Weapon availibility
 	allImages.push_back(new WeaponDisplay(loadImage("Install/Screen/MIS.dib"),31,51,&missileState));
