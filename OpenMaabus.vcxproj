@@ -74,19 +74,25 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ambience.cpp" />
+    <ClCompile Include="displayClasses.cpp" />
     <ClCompile Include="drawDisplay.cpp" />
     <ClCompile Include="gameplay.cpp" />
     <ClCompile Include="input.cpp" />
     <ClCompile Include="location.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="mapFile.cpp" />
     <ClCompile Include="openAudio.cpp" />
     <ClCompile Include="openVideo.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="displayClasses.h" />
+    <ClInclude Include="drawDisplay.h" />
     <ClInclude Include="gameplay.h" />
     <ClInclude Include="input.h" />
     <ClInclude Include="location.h" />
+    <ClInclude Include="main.h" />
     <ClInclude Include="openAudio.h" />
+    <ClInclude Include="openVideo.h" />
     <ClInclude Include="structs.h" />
     <ClInclude Include="videoState.h" />
   </ItemGroup>

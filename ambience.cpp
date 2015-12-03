@@ -5,13 +5,9 @@ extern "C" {
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
 }
+#include "openAudio.h"
 
-extern AVFormatContext *pFormatCtx;
-extern AVCodecContext  *pCodecCtxOrig;
-extern int videoStream, audioStream;
-int initAudio(int audioStream, AVFormatContext *pFormatCtx);
-void resetTicks();
-extern bool ambiencePlaying;
+bool ambiencePlaying = false;
 
 Mix_Chunk *currentAmbience = NULL;
 

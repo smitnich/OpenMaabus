@@ -4,19 +4,12 @@
 #include <SDL_ttf.h>
 
 #include "gameplay.h"
+#include "displayClasses.h"
 
 SDL_Surface *backdrop = NULL;
 SDL_Rect fullScreen = { 0, 0, 640, 480 };
-extern SDL_Surface *screen;
-extern std::string rootPath;
-
-// Availability of weapons
-
-enum {
-	WEAPON_ACTIVE,
-	WEAPON_AVAILABLE,
-	WEAPON_UNAVAILABLE
-};
+#include "videoState.h"
+#include "main.h"
 
 // WEAPON_ACTIVE = Weapon has ammo and is usable and is selected
 // WEAPON_AVAILABLE = Weapon has ammo and is usable but is not selected
@@ -86,8 +79,12 @@ int uplinkActive = 0;
 
 int kmDigits[3] = { 0, 0, 0 };
 
+
 // Color used for transparency in source images
 SDL_Color transparent = { 0, 0xFF, 0xFF };
+
+std::list<ImageHandler *> allImages;
+
 
 #define TRANSPARENT 0x00FFFF
 
@@ -144,133 +141,6 @@ void updateAnalysis(std::string text)
 	analysisSurface = TTF_RenderText(analysisFont, text.data(),
 		textColor, black);
 }
-
-class ImageHandler
-{
-public:
-	SDL_Rect pos;
-	SDL_Surface *image;
-	ImageHandler(SDL_Surface *surface, int x, int y)
-	{
-		image = surface;
-		if (image)
-			pos = { x, y, surface->w, surface->h };
-		else
-			pos = { x, y, 0, 0 };
-	}
-	~ImageHandler()
-	{
-		if (image)
-			SDL_FreeSurface(image);
-	}
-	virtual void draw()
-	{
-		SDL_BlitSurface(image, NULL, screen, &pos);
-	}
-};
-
-class RectangleHandler : public ImageHandler
-{
-public:
-	Uint32 onColor, offColor;
-	SDL_Rect pos;
-	int *isOn;
-	RectangleHandler(Uint32 _onColor, Uint32 _offColor, SDL_Rect _pos, int *_isOn)
-		: ImageHandler(NULL, 0, 0), onColor(_onColor), offColor(_offColor), pos(_pos), isOn(_isOn)
-	{
-	}
-	void draw() override
-	{
-		// Hack for FillRect not supporting transparency: make sure we don't draw pure black
-		if (!*isOn && offColor == 0)
-			return;
-		SDL_FillRect(screen, &pos, *isOn ? onColor : offColor);
-	}
-	~RectangleHandler()
-	{
-	}
-};
-
-std::list<ImageHandler *> allImages;
-
-class ArrowDisplay : public ImageHandler
-{
-public:
-	int *isOn;
-	SDL_Rect srcRect, pos;
-	SDL_Surface *image;
-	ArrowDisplay(SDL_Surface *surface, SDL_Rect _srcRect, SDL_Rect _destRect, int *_isOn) : ImageHandler(NULL, 0, 0),
-		image(surface), srcRect(_srcRect), pos(_destRect), isOn(_isOn)
-	{
-
-	}
-	void draw() override
-	{
-		if (*isOn)
-			SDL_BlitSurface(image, &srcRect, screen, &pos);
-	}
-};
-
-class WeaponDisplay : public ImageHandler
-{
-public:
-	int *weaponState;
-	WeaponDisplay(SDL_Surface *surface, int x, int y, int *ws)
-		: ImageHandler(surface, x, y)
-	{
-		weaponState = ws;
-	}
-	void draw() override
-	{
-		SDL_Rect toDraw = { 0, 0, image->w, image->h/3 };
-		switch (*weaponState)
-		{
-		case WEAPON_AVAILABLE:
-			break;
-		case WEAPON_ACTIVE:
-			toDraw.y = 20;
-			break;
-		case WEAPON_UNAVAILABLE:
-		default:
-			toDraw.y = 40;
-		}
-		SDL_BlitSurface(image, &toDraw, screen, &pos);
-	}
-};
-
-class BasicDisplay : public ImageHandler
-{
-public:
-	int *condition;
-	int imageHeight;
-	BasicDisplay(SDL_Surface *surface, int x, int y, int *state, int numImages) :
-		ImageHandler(surface, x, y)
-	{
-		condition = state;
-		imageHeight = surface->h/numImages;
-	}
-	void draw() override
-	{
-		SDL_Rect toDraw = { 0, *condition*imageHeight, image->w, imageHeight };
-		SDL_BlitSurface(image, &toDraw, screen, &pos);
-	}
-};
-
-class AnalysisDisplay : public ImageHandler
-{
-public:
-	int scrollPosition;
-	bool active;
-	SDL_Surface **toDraw;
-	AnalysisDisplay(SDL_Surface **surface, int x, int y) : ImageHandler(NULL, x, y)
-	{
-		toDraw = surface;
-	}
-	void draw() override
-	{
-		SDL_BlitSurface(*toDraw, NULL, screen, &pos);
-	}
-};
 
 void addImageHandler(const std::string path, int x, int y)
 {

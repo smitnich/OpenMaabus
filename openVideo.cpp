@@ -21,11 +21,9 @@ bool isVideoOpen = false;
 
 AVRational frameRate;
 #include "openAudio.h"
+#include "main.h"
 unsigned int startTicks = 0;
 void resetTicks();
-
-SDL_Surface *getScreen();
-extern 	SDL_Renderer *renderer;
 
 void initVideo()
 {

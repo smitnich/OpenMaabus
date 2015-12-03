@@ -15,10 +15,7 @@ static Uint8 audio_buf[(MAX_AUDIO_FRAME_SIZE * 3) / 2];
 static Uint32 audio_buf_size = 0;
 static unsigned int audio_buf_index = 0;
 
-bool pastTimestamp(int64_t ts);
-
 volatile bool stopRequested = false;
-bool ambiencePlaying = false;
 bool audioOpen = false;
 void closeAmbience();
 

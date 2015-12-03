@@ -5,20 +5,13 @@
 #include "input.h"
 #include "openAudio.h"
 #include "location.h"
+#include "openVideo.h"
+#include "drawDisplay.h"
 
-extern bool isVideoOpen;
-void initVideo();
-int openVideo(const char *name, SDL_Surface *outputTo);
-bool renderFrame(SDL_Surface *screen);
-void closeVideo();
-void closeAudio();
 using namespace std;
-void drawScreen(SDL_Surface *screen);
-void loadImages(SDL_Surface *screen);
 SDL_Surface *screen = NULL;
-int openAmbience(const char *name);
-bool renderSample();
-
+SDL_Renderer *renderer;
+SDL_Window *window;
 std::string rootPath = "D:/source/openmaabus/OpenMaabus/Maabus/";
 
 std::string queuedVideo;
@@ -34,9 +27,6 @@ void playQueuedVideo()
 	openVideo(queuedVideo.data(), screen);
 	queuedVideo.erase();
 }
-
-SDL_Renderer *renderer;
-SDL_Window *window;
 
 int main(int argc, char *argv[])
 {

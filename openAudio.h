@@ -35,7 +35,11 @@ void audio_callback(void *userdata, Uint8 *stream, int len);
 int audio_decode_frame(AVCodecContext *aCodecCtx, uint8_t *audio_buf, int buf_size);
 static int packet_queue_get(PacketQueue *q, AVPacket *pkt, int block);
 int packet_queue_put(PacketQueue *q, AVPacket *pkt);
-
+void closeAudio();
+int openAmbience(const char *name);
+bool renderSample();
 void playAmbience(const char *path);
+static bool pastTimestamp(int64_t ts);
 
+extern bool ambiencePlaying;
 extern PacketQueue audioq;
