@@ -83,6 +83,7 @@
     <ClCompile Include="mapFile.cpp" />
     <ClCompile Include="openAudio.cpp" />
     <ClCompile Include="openVideo.cpp" />
+    <ClCompile Include="readeEXE.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="displayClasses.h" />

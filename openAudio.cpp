@@ -71,7 +71,10 @@ int initAudio(int audioStream, AVFormatContext *pFormatCtx)
 	}
 	// Set audio settings from codec info
 	wanted_spec.freq = aCodecCtx->sample_rate;
-	wanted_spec.format = AUDIO_S16SYS;
+	if (av_get_exact_bits_per_sample(aCodec->id) == 8)
+		wanted_spec.format = AUDIO_U8;
+	else
+		wanted_spec.format = AUDIO_S16SYS;
 	wanted_spec.channels = aCodecCtx->channels;
 	wanted_spec.silence = 0;
 	wanted_spec.samples = SDL_AUDIO_BUFFER_SIZE;
@@ -88,7 +91,6 @@ int initAudio(int audioStream, AVFormatContext *pFormatCtx)
 		fprintf(stderr, "Unable to open codec");
 	}
 
-	// audio_st = pFormatCtx->streams[index]
 	packet_queue_init(&audioq);
 	SDL_PauseAudioDevice(dev, 0);
 	return 0;
@@ -207,20 +209,7 @@ void audio_callback(void *userdata, Uint8 *stream, int len) {
 	}
 }
 extern AVFormatContext *pFormatCtx;
-extern AVPacket        packet;
 extern int audioStream;
-
-bool renderSample()
-{
-	if (av_read_frame(pFormatCtx, &packet) < 0)
-		return false;
-	// Is this a packet from the video stream?
-	if (packet.stream_index == audioStream) {
-		packet_queue_put(&audioq, &packet);
-		return true;
-	}
-	return false;
-}
 
 int audio_decode_frame(AVCodecContext *aCodecCtx, uint8_t *audio_buf, int buf_size) {
 

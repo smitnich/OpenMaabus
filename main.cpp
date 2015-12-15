@@ -46,7 +46,8 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 	initVideo();
-	openVideo((rootPath + "CD1/J1-/J1-J2.mav").data(), screen);
+	openVideo((rootPath + "CD1/INTRO2.mav").data(), screen);
+	//openVideo((rootPath + "CD1/J1-/J1-J2.mav").data(), screen);
 	loadImages(screen); 
 	openEXE((rootPath + "INSTALL/Maabus.exe").data());
 	Location location("J2-");
@@ -59,7 +60,7 @@ int main(int argc, char *argv[])
 		{
 			closeVideo();
 			closeAudio();
-			openAmbience((rootPath + "CD1/J2-/AMB.wav").data());
+			//openAmbience((rootPath + "CD1/J2-/AMB.wav").data());
 		}
 		int input = getInput();
 		switch (input) {
@@ -72,6 +73,8 @@ int main(int argc, char *argv[])
 		case INPUT_REVERSE:
 		case INPUT_RIGHT:
 		case INPUT_LEFT:
+			closeVideo();
+			closeAudio();
 			location.handleInput(input);
 			break;
 		}

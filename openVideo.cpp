@@ -167,6 +167,16 @@ bool pastTimestamp(int64_t ts)
 
 static SDL_Texture *texture = NULL;
 
+bool loadAudioOnly()
+{
+	while (av_read_frame(pFormatCtx, &packet) < 0) {
+		if (packet.stream_index == audioStream) {
+			packet_queue_put(&audioq, &packet);
+		}
+	}
+	return true;
+}
+
 bool renderFrame(SDL_Surface *screen)
 {
 	if (isVideoOpen == false)
@@ -193,6 +203,7 @@ bool renderFrame(SDL_Surface *screen)
 				break;
 			}
 			frameReady = true;
+			return true;
 		}
 		else if (packet.stream_index == audioStream) {
 			packet_queue_put(&audioq, &packet);
@@ -269,6 +280,8 @@ bool renderFrame(SDL_Surface *screen)
 	//SDL_DestroyTexture(texture);
 	return true;
 }
+
+extern SDL_AudioDeviceID dev;
 void closeVideo()
 {
 	if (!isVideoOpen)
@@ -281,5 +294,6 @@ void closeVideo()
 	avformat_close_input(&pFormatCtx);
 	// Free the YUV frame
 	av_frame_free(&pFrame);
+	SDL_CloseAudioDevice(dev);
 	isVideoOpen = false;
 }
