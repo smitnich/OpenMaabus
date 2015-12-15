@@ -15,6 +15,7 @@ SDL_Window *window;
 std::string rootPath = "D:/source/openmaabus/OpenMaabus/Maabus/";
 
 std::string queuedVideo;
+void openEXE(const char *fileName);
 
 void playQueuedVideo()
 {
@@ -46,7 +47,8 @@ int main(int argc, char *argv[])
 	}
 	initVideo();
 	openVideo((rootPath + "CD1/J1-/J1-J2.mav").data(), screen);
-	loadImages(screen);
+	loadImages(screen); 
+	openEXE((rootPath + "INSTALL/Maabus.exe").data());
 	Location location("J2-");
 	location.currentPos = DIR_EAST;
 	while (!doExit)
