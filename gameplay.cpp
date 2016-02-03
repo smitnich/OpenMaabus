@@ -14,4 +14,6 @@ int missilesLeft = 4;
 int lasersLeft = 0;
 int toxinLeft = 3;
 
+int half_hours_availible = 3;
+
 int secondsLeft = 60 * 60 + 60*23 + 45;

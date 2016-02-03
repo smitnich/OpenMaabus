@@ -11,7 +11,7 @@ input_t getInput()
 			switch (event.key.keysym.sym)
 			{
 			case SDLK_ESCAPE:
-				return INPUT_QUIT;
+				return INPUT_SKIP;
 			case SDLK_UP:
 				return INPUT_FORWARD;
 			case SDLK_DOWN:

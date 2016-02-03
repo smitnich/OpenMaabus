@@ -30,9 +30,6 @@ struct help_text
 	char missilesAvailible[144];
 	char laserAvailible[153];
 	char toxinAvailible[133];
-
-
-	char remainder[1024];
 };
 
 help_text allHelp;
@@ -62,7 +59,5 @@ void openEXE(const char *fileName)
 	}
 	fread(buffer, sizeof(char), end_offset - text_offset, exe);
 	memcpy(&test, buffer, end_offset - text_offset);
-	int next = strlen(test.remainder)+1;
-	printf("%d - %s", next, test.remainder);
 	fclose(exe);
 }

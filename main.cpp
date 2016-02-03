@@ -7,6 +7,8 @@
 #include "location.h"
 #include "openVideo.h"
 #include "drawDisplay.h"
+#include "mapFile.h"
+#include <list>
 
 using namespace std;
 SDL_Surface *screen = NULL;
@@ -14,19 +16,29 @@ SDL_Renderer *renderer;
 SDL_Window *window;
 std::string rootPath = "D:/source/openmaabus/OpenMaabus/Maabus/";
 
-std::string queuedVideo;
+std::list<std::string> queuedVideos;
 void openEXE(const char *fileName);
 
-void playQueuedVideo()
+bool playQueuedVideo()
 {
-	if (queuedVideo.size() == 0)
+	if (queuedVideos.size() == 0)
 	{
-		return;
+		return false;
 	}
+	std::string queuedVideo = queuedVideos.front();
+	queuedVideos.pop_front();
 	closeAudio();
 	closeVideo();
 	openVideo(queuedVideo.data(), screen);
-	queuedVideo.erase();
+	return true;
+}
+
+void loadInitialVideos()
+{
+	queuedVideos.push_back(rootPath + "INTRO1.mav");
+	queuedVideos.push_back(rootPath + "INTRO.mav");
+	queuedVideos.push_back(rootPath + "INTRO2.mav");
+	queuedVideos.push_back(rootPath + "INTRO3.mav");
 }
 
 int main(int argc, char *argv[])
@@ -46,21 +58,20 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 	initVideo();
-	openVideo((rootPath + "CD1/INTRO2.mav").data(), screen);
-	//openVideo((rootPath + "CD1/J1-/J1-J2.mav").data(), screen);
-	loadImages(screen); 
+	loadInitialVideos();
+	loadImages(screen);
 	openEXE((rootPath + "INSTALL/Maabus.exe").data());
+	readMapFile((rootPath + "INSTALL/MAP.dat").data());
 	Location location("J2-");
 	location.currentPos = DIR_EAST;
+	openVideo((rootPath + "INTRO/INTRO.mav").data(), screen);
+	playQueuedVideo();
 	while (!doExit)
 	{
 		drawScreen(screen);
-		playQueuedVideo();
 		if (isVideoOpen && !renderFrame(screen))
 		{
-			closeVideo();
-			closeAudio();
-			//openAmbience((rootPath + "CD1/J2-/AMB.wav").data());
+			playQueuedVideo();
 		}
 		int input = getInput();
 		switch (input) {
@@ -73,9 +84,10 @@ int main(int argc, char *argv[])
 		case INPUT_REVERSE:
 		case INPUT_RIGHT:
 		case INPUT_LEFT:
-			closeVideo();
-			closeAudio();
 			location.handleInput(input);
+			break;
+		case INPUT_SKIP:
+			playQueuedVideo();
 			break;
 		}
 	}

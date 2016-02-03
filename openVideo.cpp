@@ -43,8 +43,14 @@ int openVideo(const char *name, SDL_Surface *outputTo)
 
 
 	// Open video file
-	if (avformat_open_input(&pFormatCtx, name, NULL, NULL) != 0)
+	int res = avformat_open_input(&pFormatCtx, name, NULL, NULL);
+	if (res != 0)
+	{
+		char buffer[1024] = { 0 };
+		av_make_error_string(buffer, 1024, res);
+
 		return -1; // Couldn't open file
+	}
 
 	// Retrieve stream information
 	if (avformat_find_stream_info(pFormatCtx, NULL) < 0)
@@ -294,6 +300,5 @@ void closeVideo()
 	avformat_close_input(&pFormatCtx);
 	// Free the YUV frame
 	av_frame_free(&pFrame);
-	SDL_CloseAudioDevice(dev);
 	isVideoOpen = false;
 }

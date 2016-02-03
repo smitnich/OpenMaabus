@@ -7,7 +7,8 @@ enum
 	INPUT_FORWARD,
 	INPUT_RIGHT,
 	INPUT_LEFT,
-	INPUT_REVERSE
+	INPUT_REVERSE,
+	INPUT_SKIP
 };
 
 input_t getInput();

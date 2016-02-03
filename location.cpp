@@ -16,10 +16,11 @@
 #include <string>
 #include "location.h"
 #include "input.h"
+#include <list>
 
 #define BUFFER_SIZE 128
 
-extern std::string queuedVideo;
+extern std::list<std::string> queuedVideos;
 
 void playVideo(const char *fileName);
 
@@ -114,7 +115,7 @@ void Location::reverse()
 	char buffer[1024] = { 0 };
 	int lookup[] = { 0, 1, 3, 2, 4 };
 	sprintf_s(buffer, "%sCD1/%s/%sR%d%s.mav", rootPath.data(), nodeName.data(), nodeName.data(), lookup[currentPos], !reversed ? "A" : "B");
-	queuedVideo = std::string(buffer);
+	queuedVideos.push_back(std::string(buffer));
 	reversed = !reversed;
 }
 void Location::move(int start, int end)
@@ -122,7 +123,7 @@ void Location::move(int start, int end)
 	char buffer[1024] = { 0 };
 	int val = lookupTable[start - 1][end - 1];
 	sprintf_s(buffer, "%sCD1/%s/%s%d.mav", rootPath.data(), nodeName.data(), nodeName.data(), lookupTable[start - 1][end - 1]);
-	queuedVideo = std::string(buffer);
+	queuedVideos.push_back(std::string(buffer));
 	currentPos = end;
 	reversed = true;
 }

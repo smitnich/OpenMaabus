@@ -92,6 +92,7 @@
     <ClInclude Include="input.h" />
     <ClInclude Include="location.h" />
     <ClInclude Include="main.h" />
+    <ClInclude Include="mapFile.h" />
     <ClInclude Include="openAudio.h" />
     <ClInclude Include="openVideo.h" />
     <ClInclude Include="structs.h" />
